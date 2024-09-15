@@ -40,12 +40,12 @@ selected_vars <- c("directorio", "secuencia_p", "orden", "clase", "dominio",
                    "cuentaPropia", "microEmpresa", "sizeFirm", "y_total_m", 
                    "college", "depto", "ingtot")
 #relab es p6430
-
+#filtramos variables
 data_filtered <- data %>% select(all_of(selected_vars))
 
 data_filtered <- data_filtered %>%
   mutate(maxEducLevel = ifelse(is.na(maxEducLevel) == TRUE, 1 , maxEducLevel))
-
+# lo ponemos en millones
 data_filtered <- data_filtered  %>%
   mutate(ingtot =ingtot/1000000 )
 

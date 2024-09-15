@@ -3,8 +3,7 @@ library(ggplot2)
 library(dplyr)
 library(stargazer)
 
-data_filtered_select <- data_filtered %>%
-  select(age, sex, maxEducLevel, totalHoursWorked, formal, informal, y_total_m, estrato1)
+data_filtered <- read.csv("GEIH2018_filtered_data.csv", stringsAsFactors = FALSE)
 
 # Crear la tabla descriptiva usando stargazer en formato LaTeX
 stargazer(data_filtered_select, type = "latex",
@@ -12,12 +11,16 @@ stargazer(data_filtered_select, type = "latex",
           summary.stat = c("mean", "sd", "min", "max", "n"),
           digits = 2)
 
-# Resumen estadístico de las variables seleccionadas
-summary_stats <- data_filtered %>%
-  select(age, sex, maxEducLevel, totalHoursWorked, formal, informal, y_total_m, estrato1) %>%
-  summary()
 
-# Mostrar la tabla descriptiva
+
+# Crear la tabla descriptiva usando stargazer en formato texto
+stargazer(data_filtered, type = "text",  # Usa "latex" si necesitas el formato LaTeX
+          title = "Descriptive Statistics for Selected Variables",
+          summary.stat = c("mean", "sd", "min", "max", "n"),
+          digits = 2)
+
+# Mostrar resumen estadístico básico en la consola
+summary_stats <- summary(data_filtered_select)
 print(summary_stats)
 
 # Gráfico de distribución de edades
