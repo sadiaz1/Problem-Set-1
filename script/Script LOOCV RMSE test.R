@@ -4,43 +4,58 @@ rm(list = ls())
 # Establecer el directorio de trabajo
 setwd("C:/Users/USUARIO/Documents/Trabajo/BIG Data/Taller#1")
 
-# Cargar los datos desde el archivo CSV
+# Cargar el conjunto de datos
 data <- read.csv("GEIH2018_filtered_data.csv", stringsAsFactors = FALSE)
 
-# Instalar y cargar el paquete boot
-install.packages("boot")
-library(boot)
+# Convertir 'estrato1', 'relab' y 'p6210' a factores
+data$estrato1 <- as.factor(data$estrato1)
+data$relab <- as.factor(data$relab)
+data$p6210 <- as.factor(data$p6210)
 
-# Modelo 1
-modelo1 <- glm(log(y_total_m_ha) ~ age + sex + p6426 + p6870 + p7040 + p7070 + totalHoursWorked + 
-                 cuentaPropia + microEmpresa + estrato1 + relab + orden + I(p7070^2) + 
-                 I(maxEducLevel^2) + I(formal^2) + I(college^2), data = data)
+# Crear variables dummy para 'estrato1' (1 a 6)
+dummies_estrato1 <- model.matrix(~ estrato1 - 1, data = data)  # Incluye todas las categorías
+# Renombrar columnas con los niveles reales de estrato1
+colnames(dummies_estrato1) <- paste0("estrato1_", levels(data$estrato1))
 
-# Modelo 2
-modelo2 <- glm(log(y_total_m_ha) ~ age + totalHoursWorked + formal + estrato1 + p6426 + I(age^2) + 
-                 I(totalHoursWorked^2) + age:formal + I(totalHoursWorked^2):estrato1 + p6426:I(age^2), data = data)
+# Crear variables dummy para 'relab'
+dummies_relab <- model.matrix(~ relab - 1, data = data)  # Incluye todas las categorías
+# Renombrar columnas con los niveles reales de relab
+colnames(dummies_relab) <- paste0("relab_", levels(data$relab))
 
-# LOOCV para modelo 1
-loocv_modelo1 <- cv.glm(data, modelo1)
-loocv_modelo1_error <- loocv_modelo1$delta[1]  # Error de predicción LOOCV para el modelo 1
+# Crear variables dummy para 'p6210'
+dummies_p6210 <- model.matrix(~ p6210 - 1, data = data)  # Incluye todas las categorías
+# Renombrar columnas con los niveles reales de p6210
+colnames(dummies_p6210) <- paste0("p6210_", levels(data$p6210))
 
-# LOOCV para modelo 2
-loocv_modelo2 <- cv.glm(data, modelo2)
-loocv_modelo2_error <- loocv_modelo2$delta[1]  # Error de predicción LOOCV para el modelo 2
+# Unir las variables dummy al dataframe original, excluyendo las variables categóricas originales
+data_dummy <- cbind(data, dummies_estrato1, dummies_relab, dummies_p6210)
+data_dummy <- data_dummy[, !(names(data_dummy) %in% c("estrato1", "relab", "p6210"))]
 
-# MSE para modelo 1
-y_real <- data$y_total_m_ha  # Utiliza la variable presente en tu dataframe
-y_predicho1 <- predict(modelo1, newdata = data, type = "link")
-mse_modelo1 <- mean((log(y_real) - y_predicho1)^2)
+# Modelo 0
+modelo0 <- glm(log(y_total_m_ha) ~ age + sex + p6426 + p6870 + p7070 + maxEducLevel + 
+                 totalHoursWorked + formal + cuentaPropia + microEmpresa + 
+                 estrato1_3 + estrato1_4 + estrato1_5 + estrato1_6 + 
+                 p6210_6 + relab_2 + relab_5, data = data_dummy)
 
-# MSE para modelo 2
-y_predicho2 <- predict(modelo2, newdata = data, type = "link")
-mse_modelo2 <- mean((log(y_real) - y_predicho2)^2)
+# Modelo 7 (Basado en la imagen proporcionada)
+modelo7 <- glm(log(y_total_m_ha) ~ age + totalHoursWorked + formal + estrato1_3 + estrato1_4 + 
+                 estrato1_5 + estrato1_6 + p6210_6 + relab_2 + relab_5 + p6426 + I(age^2) + 
+                 I(totalHoursWorked^2) + age:formal + totalHoursWorked^2:estrato1_3 + I(p6426 * age^2),
+               data = data_dummy)
 
-# Calculo RMSE
-rmse_modelo1 <- sqrt(loocv_modelo1_error)
-print(rmse_modelo1)
+# LOOCV para el Modelo 0
+loocv_modelo0 <- cv.glm(data_dummy, modelo0)
+loocv_modelo0_error <- loocv_modelo0$delta[1]  # Error de predicción LOOCV para el Modelo 0
 
-rmse_modelo2 <- sqrt(loocv_modelo2_error)
-print(rmse_modelo1)
+# Calcular el RMSE para el Modelo 0
+rmse_modelo0 <- sqrt(loocv_modelo0_error)
+print(paste("RMSE Modelo 0:", rmse_modelo0))
+
+# LOOCV para el Modelo 7
+loocv_modelo7 <- cv.glm(data_dummy, modelo7)
+loocv_modelo7_error <- loocv_modelo7$delta[1]  # Error de predicción LOOCV para el Modelo 7
+
+# Calcular el RMSE para el Modelo 7
+rmse_modelo7 <- sqrt(loocv_modelo7_error)
+print(paste("RMSE Modelo 7:", rmse_modelo7))
 
